@@ -45,21 +45,27 @@ sbit WAKE_ at GPIOA_ODR.B4;              // WAKE pin
 // End TFT module connections
 // modified by Aleksandar Fotev
 
-extern short int DATA_TX[];   //niz za transmitovanje, pisanje, i ispisivanje na displej
-extern short int DATA_RX[];   //niz niza za primanje, citanje
+extern short int DATA_TX[];   // array for transmiting data, writing to TFT display
+extern short int DATA_RX[];   //array for receiving data
 
-int oldstateA4;         // oldstateA(x) prestavlja stanje dugmeta iz prethodnog loop-a
-int oldstateA5;		// (x) je konkretno dugme
-int oldstateA6;
+int oldstateA4;         // oldstateA(x) represent the state of a pressed button
+int oldstateA5;		// (x) is the actual button
+int oldstateA6;         // = 0 - button was not pressed in the previous loop, 
+			// = 1-  was pressed
 
-char txt[4];		//tekst koji upisujemo
+char txt[4];		//array that will contain the text to be written on the TFT display
 
-int zvuk;    // zvuk moze imati vrednosti: 0 (nema signala), 1(kratak signal) ili 2 (dug signal)
+int zvuk;	// sound, can have values: 
+		// 0 (no sound), 
+		// 1 (short signal),
+		// 2 (long signal),
 int k;
-int stanje;  // stanje moze biti: pustam signal (0) ili primam signal (1)
-int bufferPointer;  // Cuva id poruke na osnovu kojeg znamo da li je primljeni signal ranije vec primljen
+int stanje;	// state, can be:
+		// sending / transmiting (0) 
+		// receiving (1)
+int bufferPointer;	//variable that represents the ID of the message
 
-void DrawFrame() 			// MK funkcija za crtanje frejma na LCD displey
+void DrawFrame() 			// MK routine for drawing on the TFT display
 {
     TFT_Init_ILI9341_8bit(320,240);
     TFT_Fill_Screen(CL_WHITE);
@@ -80,109 +86,108 @@ void main()
 {
 //init
 
-    GPIO_Digital_Input(&GPIOA_IDR, _GPIO_PINMASK_ALL);         // Set PA0 as digital input
-    GPIO_Digital_Output(&GPIOD_ODR, _GPIO_PINMASK_ALL);        // registrujemo lampice kao output
-    Sound_Init(&GPIOE_ODR, 14);				   // inicijalizacija zvuka/speaker-a na ploci
+    GPIO_Digital_Input(&GPIOA_IDR, _GPIO_PINMASK_ALL);         // Set board buttons as digital input
+    GPIO_Digital_Output(&GPIOD_ODR, _GPIO_PINMASK_ALL);        // SET LED lamps as output
+    Sound_Init(&GPIOE_ODR, 14);				   // init of the on-board speakers via MK library
 
 
     Initialize();                      // Initialize MCU and Bee click board
     DrawFrame();
 
-    zvuk=0;			//
+    zvuk=0;			
     bufferPointer = -1;
     oldstateA4 = 0;
     oldstateA5 = 0;
     oldstateA6 = 0;
     k = 0;
-// kraj inita
+// end of init
 
 
     while(1)                           // Infinite loop
     {
 
-        if (Button(&GPIOA_IDR, 4, 1, 1)) oldstateA4 = 1; 	  // kada pritisnemo taster za selekciju moda, pamtimo da je dugme pritisnuto
-        if (Button(&GPIOA_IDR, 4, 1, 0)&&oldstateA4==1)        // detektujemo kada smo otpustili taster (0), a znamo da je dugme bilo pritisnuto (oldstate)
+        if (Button(&GPIOA_IDR, 4, 1, 1)) oldstateA4 = 1; 	  // when we press a button, we set the oldState to 1, to rembember in the next loop that the button is still pressed
+        if (Button(&GPIOA_IDR, 4, 1, 0)&&oldstateA4==1)		// when the button is not pressed (0) but we know it was pressed in the previous loop (oldstate=1), we execute the command
         {
-            GPIOD_ODR = 0;					                   // gasimo sve lampice na ploci u bloku
-            GPIOD_ODR.HAINT1 = ~GPIOD_ODR.HAINT1;             // invertujemo stanje jedne lampice u bloku
-            zvuk = 1;					                        // pustamo kratak signal
-            stanje = 0;                                       // prelazimo u mod transmitera (saljemo signal)
-            oldstateA4=0;					  // pamtimo da dugme otpusteno
-
+            GPIOD_ODR = 0;					// turn off all the LED lamps in the block
+            GPIOD_ODR.HAINT1 = ~GPIOD_ODR.HAINT1;             // invert one lamp in the block (it will be on now), represents the state of the board, in this case, transmiting
+            zvuk = 1;						// sound, short signal
+            stanje = 0;                                       // save the value of the mode we are in, transmiting
+            oldstateA4=0;					// reset the oldstate to 0, so we know it wasn't pressed in the last loop
         }
 
-        if (Button(&GPIOA_IDR, 5, 1, 1)) oldstateA5 = 1;        // detektujemo da li je pritisnuto dugme za dugi signal
-        if (Button(&GPIOA_IDR, 5, 1, 0)&&oldstateA5==1) 	  // detektujemo kada je dugme otpusteno
+        if (Button(&GPIOA_IDR, 5, 1, 1)) oldstateA5 = 1;        // same as above for the long signal
+        if (Button(&GPIOA_IDR, 5, 1, 0)&&oldstateA5==1) 	  
         {
-            GPIOD_ODR = 0;                      		  // gasimo sve lampice u bloku
-            GPIOD_ODR.HAINT2 =~GPIOD_ODR.HAINT2;		  // invertujemo jednu lampicu (razlicitu od kratkog signala)
-            zvuk =2;						  // dug signal
+            GPIOD_ODR = 0;                      		  
+            GPIOD_ODR.HAINT2 =~GPIOD_ODR.HAINT2;		  
+            zvuk =2;						  
             stanje = 0;
             oldstateA5=0;
         }
 
-        if (Button(&GPIOA_IDR, 6, 1, 1))                       // detektujemo kada je pritisnuto dugme za prelazak u mod receivera
+        if (Button(&GPIOA_IDR, 6, 1, 1))                       // entering the receiver mode
         {
-            GPIOD_ODR = 0;					 // gasimo lampice u bloku
-            GPIOD_ODR.HAINT3 = ~GPIOD_ODR.HAINT3;		 // invertujemo jednu u bloku
-            zvuk = 0;					 // ne saljemo zvuk
-            stanje = 1;					 // pamtimo da smo u modu receivera
+            GPIOD_ODR = 0;					 // LED Lamps 
+            GPIOD_ODR.HAINT3 = ~GPIOD_ODR.HAINT3;		 // 
+            zvuk = 0;					 	// not sending any sound now, we are just receiving 
+            stanje = 1;					 	// save the value so we know we are in receiver mode 
 
         }
 
-        if (zvuk!=0)                                         // ako pustamo zvuk (transmit mode)
+        if (zvuk!=0)                                         // (transmit mode, 1 or 2)
         {
-            if (bufferPointer>200) bufferPointer = 0;         // ako smo presli buffer, resetujemo ga
-            DATA_TX[0]=zvuk;				 // setujemo bit 0 za slanje na vrednost zvuka koji saljemo (1 kratak signal, 2 dug)
-            bufferPointer++;				 // povecavamo ID signala
-            DATA_TX[1]=bufferPointer;			 // setujemo bit 1 za slanje na ID signala
-            zvuk=0;					 // resetujemo signal na 0
-            stanje = 0;					 // ostajemo u stanju transmitera
+            if (bufferPointer>200) bufferPointer = 0;         // buffer value check, so we don't pass a certain limit
+            DATA_TX[0]=zvuk;				 // DATA_TX[0], value of the signal(1 short signal, 2 long signal)
+            bufferPointer++;				 // iterate the signal ID 
+            DATA_TX[1]=bufferPointer;			 // set the signal ID
+            zvuk=0;					 // reset "local" signal value to 0
+            stanje = 0;					 // stay in transmit mode
 
-            for (k =0 ; k<50; k++)			 // Saljemo 50 puta isti signal da bismo bili sigurni da je signal poslat, ali sa istim ID-om
+            for (k =0 ; k<50; k++)			 // sending the same message mutliple times to be sure it will be received (it will be ignored if we receive it more then once)
             {
-                write_TX_normal_FIFO();                    // Transmitovanje preko WiFi-a
+                write_TX_normal_FIFO();                    // transmiting
             }
 
-            DATA_TX[0]=bufferPointer;                      // stavljamo ID signala u bit za slanje vrednosti zvuka jer koristimo DATA_TX[0] za ispisivanje an displej
+            DATA_TX[0]=bufferPointer;                      // saving the signal ID to the array that will be later used for writing to TFT displey
         }
 
-        else
+        else						// no sound sending, which means we are in reciever or relay mode
         {
-            if (bufferPointer>200) bufferPointer = 0;	// zvuk je 0, odnosno u stanju smo relej-a ili recievera
-            read_RX_FIFO();				// citamo preko WiFi-a na defaultnom kanalu
+            if (bufferPointer>200) bufferPointer = 0;	
+            read_RX_FIFO();				// read the WiFi default channel
 
 
 
-            if ((stanje==1) && (bufferPointer<DATA_RX[1]))  // Da li smo u stanju slusanja i da li je primljeni signal vec stigao ranije
+            if ((stanje==1) && (bufferPointer<DATA_RX[1]))  // are we in the receiver mode and is the last signal ID we received newer then the newly received one?
             {
-                if (DATA_RX[0]==1)   			// primljeni signal u bit za vrednost zvuka ima 1 (kratak signal)
+                if (DATA_RX[0]==1)   			//  the signal is new and it's short
                 {
-                    Sound_Play(500,500);			// pustam kratak signal na ploci (frekvencija, trajanje)
+                    Sound_Play(500,500);			// play it (frequency, duration)
                 }
 
-                if (DATA_RX[0]==2)  			// dug signal
+                if (DATA_RX[0]==2)  			// the signal is new and it's long
                 {
                     Sound_Play(500,1000);
                 }
             }
 
-            // Prosledi signal
-            if (DATA_RX[0]==1 || DATA_RX[0]==2)   // proveravamo da li je vrednost primljenog signala 1 ili 2
+            // relay the signal
+            if (DATA_RX[0]==1 || DATA_RX[0]==2)   // check if the received signal is 1 or 2
             {
-                if (bufferPointer<DATA_RX[1])  	// Provera da li je primljeni signal ranije primljen
+                if (bufferPointer<DATA_RX[1])  	// signal ID check
                 {
-                    bufferPointer = DATA_RX[1];	//nije primljen ranije, setujemo test ID na ID iz signala
-                    DATA_TX[0] = DATA_RX[0];	// setujemo primljen ID signala u bit za slanje ID signala
-                    DATA_TX[1]=DATA_RX[1];		// setujemo primeljnu vrednost signala u bit za slanje vrednosti signala
+                    bufferPointer = DATA_RX[1];	// new signal, set the new signal ID value as a check, prepare for transmiting
+                    DATA_TX[0] = DATA_RX[0];	// set the signal value 
+                    DATA_TX[1]=DATA_RX[1];	// set the signal ID
 
-                    // Saljemo 50 puta isti signal da bismo bili sigurni da je signal poslat
+                    // sending
                     for (k =0 ; k<50; k++)
                     {
-                        write_TX_normal_FIFO();          // Transmitujemo tj saljemo preko defaultnog kanala
+                        write_TX_normal_FIFO();          // Transmiting
                     }
 
-                    DATA_TX[0]=DATA_RX[1];		// stavljamo u DATA_TX[0] jer koristimo ovo za ispisivanje na displej
+                    DATA_TX[0]=DATA_RX[1];		// save for later use on the TFT
                 }
             }
         }
