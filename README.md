@@ -17,12 +17,12 @@ That shows an example how to write something on a TFT displey on a development b
 The example was modified to use: 
 
 - Wifi Connection as input/output
-- Buttons on the dev.board to change the mode of the board
-- Buttons on the board to change the mode of the board
+- Buttons on the board toggle different behavior modes
 - Buttons as input to apply actions / serve as input
 - changed the way how the Wifi protocol works, but within the same storage limitation
 - added a custom made debounce mechanism that ignores messages with the same ID (ignores reflections/rebounce of the WiFi signal)
-@@ -26,22 +27,8 @@ Transmitter.c:
+
+Transmitter.c:
 Everything above except the WiFi protocol change
 
 ReadWrote_Routines.c
@@ -40,12 +40,8 @@ Added a note that the default debounce routine/function does not work as intende
 
 The project (with my modifications) was tested by an assistent from Ra?unarski Fakultet (RAF) and evaluated as fully functional for the required assigment which was in short:
 
-A transmiter/relay/reciever system that can send short and long signals via WiFi and represent the signl in a video and audio manner. 
+A transmitter/relay/reciever system that can send short and long signals via WiFi and represent the signal in a video and audio manner. 
 For the video,the on-board TFT display was used, 
 for audio, the on-board speaker system was used.
-The board mode (transmiter/receiver/relay) was changed:
-in real time via pressing of specific buttons on the board, 
-with a visual cue via LED lamps switching on/off.
-\ No newline at end of file
+The board mode (transmitter/receiver/relay) is changed in real time via pressing of specific buttons on the board, with a visual cue via LED lamps switching on/off.
 Added a note that the default debounce routine/function does not work as intended in the provided library (that was provided by MikroElektronika)
-\ No newline at end of file
