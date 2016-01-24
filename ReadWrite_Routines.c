@@ -126,8 +126,9 @@ void read_RX_FIFO() {
 
 void write_TX_normal_FIFO() {
 /*
-* modified by Aleksandar Fotev, 
-* ubacen  "data_TX_normal_FIFO[14] = DATA_TX[1];" da bi se slao i ID signala, odvojen od vrednosti signala DATA_TX[0]
+* Modified by Aleksandar Fotev,
+* added  "data_TX_normal_FIFO[14] = DATA_TX[1];" ID of the signal, separated of the signal value DATA_TX[0]
+* header lenght and data lenght changed to reflect the new modifications
 */
   int i = 0;
 
@@ -136,7 +137,7 @@ void write_TX_normal_FIFO() {
   data_TX_normal_FIFO[2]  = 0x01;                        // control frame
   data_TX_normal_FIFO[3]  = 0x88;
   data_TX_normal_FIFO[4]  = SEQ_NUMBER;                  // sequence number
-  data_TX_normal_FIFO[5]  = PAN_ID_2[1];                 // destinatoin pan
+  data_TX_normal_FIFO[5]  = PAN_ID_2[1];                 // destination pan
   data_TX_normal_FIFO[6]  = PAN_ID_2[0];
   data_TX_normal_FIFO[7]  = ADDRESS_short_2[0];          // destination address
   data_TX_normal_FIFO[8]  = ADDRESS_short_2[1];

@@ -424,7 +424,7 @@ void init_ZIGBEE_nonbeacon() {
 }
 
 char Debounce_INT() {
-// debounce ne funkcionise (MK biblioteka)
+// debounce does not work by default with the provided library
   char i = 0, j = 0, intn_d = 0;
   for(i = 0; i < 5; i++) {
     intn_d = INT;
